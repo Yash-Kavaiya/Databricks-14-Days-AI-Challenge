@@ -1,0 +1,951 @@
+% Fix for MiKTeX hyperref version conflict
+% Define missing commands BEFORE documentclass loads hyperref via beamer
+\RequirePackage{expl3}
+\ExplSyntaxOn
+\cs_if_exist:NF \IfFormatAtLeastT { \cs_new:Npn \IfFormatAtLeastT #1#2 {#2} }
+\cs_if_exist:NF \IfDocumentMetadataT { \cs_new:Npn \IfDocumentMetadataT #1 {} }
+\ExplSyntaxOff
+
+\documentclass[aspectratio=169]{beamer}
+
+% Packages
+\usepackage{tikz}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{fontspec}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{hyperref}
+\hypersetup{pdfpagemode=UseNone}
+
+% Databricks Color Palette
+\definecolor{databricksBlue}{RGB}{41, 49, 66}
+\definecolor{databricksRed}{RGB}{220, 53, 69}
+\definecolor{databricksYellow}{RGB}{255, 193, 7}
+\definecolor{databricksGreen}{RGB}{76, 175, 80}
+\definecolor{databricksGray}{RGB}{128, 128, 128}
+\definecolor{databricksLightGray}{RGB}{245, 245, 245}
+\definecolor{databricksWhite}{RGB}{255, 255, 255}
+
+% Beamer Theme Configuration
+\usetheme{default}
+\usecolortheme{default}
+
+% Set colors
+\setbeamercolor{structure}{fg=databricksBlue}
+\setbeamercolor{background canvas}{bg=databricksWhite}
+\setbeamercolor{normal text}{fg=databricksBlue}
+\setbeamercolor{frametitle}{fg=databricksWhite, bg=databricksBlue}
+\setbeamercolor{title}{fg=databricksWhite}
+\setbeamercolor{subtitle}{fg=databricksLightGray}
+\setbeamercolor{author}{fg=databricksWhite}
+\setbeamercolor{date}{fg=databricksWhite}
+\setbeamercolor{institute}{fg=databricksLightGray}
+\setbeamercolor{block title}{fg=databricksWhite,bg=databricksBlue}
+\setbeamercolor{block body}{fg=databricksBlue,bg=databricksLightGray}
+\setbeamercolor{itemize item}{fg=databricksBlue}
+\setbeamercolor{itemize subitem}{fg=databricksRed}
+\setbeamercolor{footer}{fg=databricksWhite,bg=databricksBlue}
+\setbeamercolor{page number in head/foot}{fg=databricksWhite}
+
+% Remove navigation symbols
+\setbeamertemplate{navigation symbols}{}
+
+% Custom footer with three-part design and hyperlinks
+\setbeamertemplate{footline}{
+    \leavevmode%
+    \hbox{%
+        \begin{beamercolorbox}[wd=.30\paperwidth,ht=2.5ex,dp=1ex,left]{footer}%
+            \hspace*{2ex}\href{https://easy-ai-labs.lovable.app/}{\textcolor{databricksWhite}{\footnotesize Easy AI Labs}}
+        \end{beamercolorbox}%
+        \begin{beamercolorbox}[wd=.40\paperwidth,ht=2.5ex,dp=1ex,center]{footer}%
+            \href{https://www.linkedin.com/in/yashkavaiya}{\textcolor{databricksWhite}{\footnotesize Yash Kavaiya}}
+        \end{beamercolorbox}%
+        \begin{beamercolorbox}[wd=.30\paperwidth,ht=2.5ex,dp=1ex,right]{footer}%
+            \href{https://www.linkedin.com/company/genai-guru}{\textcolor{databricksWhite}{\footnotesize Gen AI Guru}} \hspace*{1ex} 
+            \textcolor{databricksWhite}{\footnotesize \insertframenumber/\inserttotalframenumber}\hspace*{2ex}
+        \end{beamercolorbox}%
+    }%
+    \vskip0pt%
+}
+
+% Custom frame title
+\setbeamertemplate{frametitle}{
+    \vspace*{0.5em}
+    \insertframetitle
+}
+
+% Bullet styling
+\setbeamertemplate{itemize item}{\textcolor{databricksBlue}{$\bullet$}}
+\setbeamertemplate{itemize subitem}{\textcolor{databricksRed}{$\triangleright$}}
+\setbeamertemplate{itemize subsubitem}{\textcolor{databricksGray}{$\circ$}}
+
+% Code listing settings
+\lstset{
+    basicstyle=\ttfamily\tiny,
+    backgroundcolor=\color{databricksLightGray},
+    frame=single,
+    rulecolor=\color{databricksBlue},
+    keywordstyle=\color{databricksBlue}\bfseries,
+    commentstyle=\color{databricksGray},
+    stringstyle=\color{databricksGreen},
+    showstringspaces=false,
+    breaklines=true,
+    numbers=none,
+    xleftmargin=0.5em,
+    xrightmargin=0.5em,
+    escapeinside={(*@}{@*)}
+}
+
+% Title Information
+\title{\textbf{Delta Lake Introduction}}
+\subtitle{Comprehensive Guide - Day 4}
+\author{Yash Kavaiya}
+\institute{Databricks 14-Days AI Challenge}
+\date{\today}
+
+% Title page customization
+\defbeamertemplate*{title page}{customized}[1][]
+{
+    \begin{tikzpicture}[remember picture, overlay]
+        \fill[databricksBlue] (current page.north west) rectangle (current page.south east);
+    \end{tikzpicture}
+    \vfill
+    \begin{center}
+        {\Huge\textcolor{databricksWhite}{\textbf{\inserttitle}}\par}
+        \vspace{0.5cm}
+        {\large\textcolor{databricksLightGray}{\insertsubtitle}\par}
+        \vspace{1cm}
+        {\textcolor{databricksYellow}{\insertauthor}\par}
+        \vspace{0.3cm}
+        {\small\textcolor{databricksLightGray}{\insertinstitute}\par}
+        \vspace{0.5cm}
+        {\small\textcolor{databricksGray}{\insertdate}\par}
+    \end{center}
+    \vfill
+}
+
+\begin{document}
+
+% Title Slide
+{
+\setbeamertemplate{footline}{}
+\frame{\titlepage}
+}
+
+% Table of Contents
+\begin{frame}{Agenda}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item \textcolor{databricksBlue}{\textbf{What is Delta Lake?}}
+                    \begin{itemize}
+                        \item Definition \& Architecture
+                        \item Problems It Solves
+                    \end{itemize}
+                \item \textcolor{databricksBlue}{\textbf{ACID Transactions}}
+                    \begin{itemize}
+                        \item Atomicity, Consistency
+                        \item Isolation, Durability
+                    \end{itemize}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item \textcolor{databricksBlue}{\textbf{Schema Enforcement}}
+                    \begin{itemize}
+                        \item Validation Rules
+                        \item Schema Evolution
+                    \end{itemize}
+                \item \textcolor{databricksBlue}{\textbf{Delta vs Parquet}}
+                \item \textcolor{databricksBlue}{\textbf{Practical Tasks}}
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Section: What is Delta Lake?
+\begin{frame}{What is Delta Lake?}
+    \begin{block}{Definition}
+        \textcolor{databricksBlue}{\textbf{Delta Lake}} is an \textbf{open-source storage layer} that brings reliability, performance, and governance to data lakes.
+    \end{block}
+    \vspace{0.5em}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Key Capabilities:}}
+            \begin{itemize}
+                \item Runs on existing data lake infrastructure
+                \item Compatible with Apache Spark APIs
+                \item Adds a ``smart layer'' on raw files
+                \item Enables database-like behavior
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksRed}{\textbf{Core Components:}}
+            \begin{itemize}
+                \item Data files in \textbf{Parquet format}
+                \item Transaction log (\texttt{\_delta\_log})
+                \item Metadata management
+                \item Version control
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Problems Delta Lake Solves
+\begin{frame}{The Problems Delta Lake Solves}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksRed}{\textbf{Challenge 1: Data Corruption}}
+            \begin{itemize}
+                \item Multiple jobs write simultaneously
+                \item Files get corrupted or partially written
+                \item Job failures leave incomplete data
+            \end{itemize}
+            \vspace{1em}
+            \textcolor{databricksRed}{\textbf{Challenge 2: No Transaction Support}}
+            \begin{itemize}
+                \item Can't roll back failed operations
+                \item Data ends up in inconsistent state
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksRed}{\textbf{Challenge 3: Schema Chaos}}
+            \begin{itemize}
+                \item Different teams write different schemas
+                \item ``Schema drift'' breaks applications
+            \end{itemize}
+            \vspace{1em}
+            \textcolor{databricksRed}{\textbf{Challenge 4: No Time Travel}}
+            \begin{itemize}
+                \item Overwritten data is gone forever
+                \item No easy way to recover mistakes
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% How Delta Lake Works
+\begin{frame}[fragile]{How Delta Lake Works}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Directory Structure:}}
+\begin{lstlisting}
+my_delta_table/
+|-- _delta_log/
+|   |-- 00000...000.json
+|   |-- 00000...001.json
+|   |-- 00000...002.json
+|-- part-00000-xxx.parquet
+|-- part-00001-xxx.parquet
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Transaction Log Contains:}}
+            \begin{itemize}
+                \item Which data files were added
+                \item Which data files were removed
+                \item Schema changes
+                \item Metadata updates
+            \end{itemize}
+            \vspace{0.5em}
+            \textcolor{databricksGreen}{\textbf{Each JSON file = One atomic commit}}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Key Features Overview
+\begin{frame}{Key Features Overview}
+    \centering
+    \footnotesize
+    \begin{tabular}{p{2.8cm}p{4.5cm}p{4.5cm}}
+        \toprule
+        \textcolor{databricksBlue}{\textbf{Feature}} & \textcolor{databricksBlue}{\textbf{Description}} & \textcolor{databricksBlue}{\textbf{Benefit}} \\
+        \midrule
+        ACID Transactions & All operations atomic \& isolated & No partial writes, consistent reads \\
+        Schema Enforcement & Validates data against table schema & Prevents bad data from entering \\
+        Schema Evolution & Safely add new columns & Adapt to changing requirements \\
+        Time Travel & Query previous versions & Audit, rollback, reproduce \\
+        Unified Batch/Streaming & Same table for both workloads & Simplified architecture \\
+        DML Operations & UPDATE, DELETE, MERGE support & SQL-like data manipulation \\
+        \bottomrule
+    \end{tabular}
+\end{frame}
+
+% ACID Transactions Overview
+\begin{frame}{ACID Transactions}
+    \begin{block}{What is ACID?}
+        Properties that ensure \textbf{reliable transaction processing} in database systems.
+    \end{block}
+    \vspace{0.5em}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{A - Atomicity}}
+            \begin{itemize}
+                \item ``All or Nothing''
+                \item Transaction is indivisible unit
+                \item Either all complete or none
+            \end{itemize}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{C - Consistency}}
+            \begin{itemize}
+                \item ``Valid State to Valid State''
+                \item All rules must be satisfied
+                \item Schema \& constraints enforced
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{I - Isolation}}
+            \begin{itemize}
+                \item ``Transactions Don't Interfere''
+                \item Concurrent execution is safe
+                \item Consistent snapshots
+            \end{itemize}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{D - Durability}}
+            \begin{itemize}
+                \item ``Committed Data Persists''
+                \item Survives system failures
+                \item Permanently stored
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Atomicity Example
+\begin{frame}{Atomicity: All or Nothing}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksRed}{\textbf{Without Delta Lake:}}
+            \begin{itemize}
+                \item Job writes 1M records
+                \item Crashes at 500K records
+                \item \textcolor{databricksRed}{500K records partially written}
+                \item \textcolor{databricksRed}{Data corrupted \& unusable}
+                \item \textcolor{databricksRed}{Manual cleanup required}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksGreen}{\textbf{With Delta Lake:}}
+            \begin{itemize}
+                \item Job writes 1M records
+                \item Crashes at 500K records
+                \item \textcolor{databricksGreen}{Transaction not committed}
+                \item \textcolor{databricksGreen}{Partial files ignored}
+                \item \textcolor{databricksGreen}{Table remains valid}
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    \vspace{1em}
+    \centering
+    \textcolor{databricksBlue}{\textbf{Optimistic Concurrency Control:}} Reads current state, Writes new files, Commits atomically
+\end{frame}
+
+% Isolation Example
+\begin{frame}{Isolation: Snapshot Isolation for Reads}
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \textcolor{databricksBlue}{\textbf{How It Works:}}
+            \begin{enumerate}
+                \item Process A reads table at version 10
+                \item Process A runs 30-minute query
+                \item Process B writes new data (version 11)
+                \item \textcolor{databricksGreen}{Process A still sees version 10!}
+            \end{enumerate}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Result:}}\\
+            Consistent snapshot throughout query execution
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \textcolor{databricksBlue}{\textbf{Write Conflict Resolution:}}
+            \begin{itemize}
+                \item Process A commits to v11
+                \item Process B attempts v11
+                \item \textcolor{databricksYellow}{Conflict detected!}
+                \item B retries with v11 data
+                \item Process B commits to v12
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Schema Enforcement
+\begin{frame}{Schema Enforcement}
+    \begin{block}{What is Schema Enforcement?}
+        \textbf{Schema on Write} - Delta Lake validates that incoming data matches the table's schema exactly before writing.
+    \end{block}
+    \vspace{0.5em}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksRed}{\textbf{Schema Drift Problem:}}
+            \begin{itemize}
+                \item Week 1: \texttt{\{user\_id: 1, name\}}
+                \item Week 2: \texttt{\{userId: 2, userName\}}
+                \item Week 3: \texttt{\{user\_id: "3", name\}}
+                \item \textcolor{databricksRed}{Dashboard breaks!}
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksGreen}{\textbf{With Enforcement:}}
+            \begin{itemize}
+                \item Schema defined: \texttt{user\_id INT}
+                \item Week 2: \textcolor{databricksRed}{REJECTED}
+                \item Week 3: \textcolor{databricksRed}{REJECTED}
+                \item \textcolor{databricksGreen}{Data stays consistent!}
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Schema Validation Rules
+\begin{frame}{Schema Validation Rules}
+    \centering
+    \begin{tabular}{p{3cm}p{5cm}p{3.5cm}}
+        \toprule
+        \textcolor{databricksBlue}{\textbf{Check}} & \textcolor{databricksBlue}{\textbf{What It Validates}} & \textcolor{databricksBlue}{\textbf{On Failure}} \\
+        \midrule
+        Column Names & All columns exist in table & Exception thrown \\
+        Extra Columns & No columns not in table & Exception thrown \\
+        Data Types & Type matches table schema & Exception thrown \\
+        Nullability & NOT NULL columns have values & Exception thrown \\
+        Column Order & N/A & Auto-handled \\
+        \bottomrule
+    \end{tabular}
+    \vspace{1em}
+    \begin{block}{Note}
+        \textcolor{databricksBlue}{\textbf{Schema Evolution}} can be enabled with \texttt{mergeSchema=true} option
+    \end{block}
+\end{frame}
+
+% Schema Evolution
+\begin{frame}[fragile]{Schema Evolution: Adding New Columns}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Enabling Schema Evolution:}}
+\begin{lstlisting}[language=Python]
+# Per-write option
+df.write.format("delta")
+  .mode("append")
+  .option("mergeSchema", "true")
+  .save("/delta/products")
+
+# Session-wide setting
+spark.conf.set(
+  "spark.databricks.delta" + 
+  ".schema.autoMerge.enabled",
+  "true")
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Supported Operations:}}
+            \begin{itemize}
+                \item \textcolor{databricksGreen}{Add Column} - mergeSchema
+                \item \textcolor{databricksYellow}{Change Type} - overwriteSchema
+                \item \textcolor{databricksYellow}{Rename Column} - ALTER TABLE
+                \item \textcolor{databricksRed}{Drop Column} - Must rewrite table
+            \end{itemize}
+            \vspace{0.5em}
+            \textcolor{databricksGray}{\small Existing rows get NULL for new columns}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Delta vs Parquet
+\begin{frame}{Delta Lake vs Parquet}
+    \centering
+    \footnotesize
+    \begin{tabular}{p{3.5cm}cc}
+        \toprule
+        \textcolor{databricksBlue}{\textbf{Feature}} & \textcolor{databricksBlue}{\textbf{Parquet}} & \textcolor{databricksBlue}{\textbf{Delta Lake}} \\
+        \midrule
+        File Format & Columnar & Columnar (Parquet) \\
+        ACID Transactions & \textcolor{databricksRed}{No} & \textcolor{databricksGreen}{Yes} \\
+        Schema Enforcement & \textcolor{databricksRed}{No} (on read) & \textcolor{databricksGreen}{Yes} (on write) \\
+        Time Travel & \textcolor{databricksRed}{No} & \textcolor{databricksGreen}{Yes} \\
+        UPDATE/DELETE & \textcolor{databricksRed}{No} & \textcolor{databricksGreen}{Yes} \\
+        MERGE (Upsert) & \textcolor{databricksRed}{No} & \textcolor{databricksGreen}{Yes} \\
+        Concurrent Writes & \textcolor{databricksRed}{Can corrupt} & \textcolor{databricksGreen}{Safe} \\
+        Streaming Support & \textcolor{databricksRed}{Limited} & \textcolor{databricksGreen}{Full} \\
+        Small File Problem & \textcolor{databricksRed}{Common} & \textcolor{databricksGreen}{Auto-compact} \\
+        \bottomrule
+    \end{tabular}
+\end{frame}
+
+% UPDATE/DELETE Comparison
+\begin{frame}[fragile]{Data Modification: Delta vs Parquet}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksRed}{\textbf{Parquet (Complex):}}
+\begin{lstlisting}[language=Python]
+# Must read ALL data
+df = spark.read.parquet("/path")
+# Filter and separate
+keep = df.filter(col("id") != 1)
+update = df.filter(col("id") == 1)
+# Apply changes
+updated = update.withColumn(...)
+# Overwrite EVERYTHING
+final = keep.union(updated)
+final.write.mode("overwrite")
+     .parquet("/path")
+\end{lstlisting}
+            \textcolor{databricksRed}{\small Not atomic, slow, unsafe}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksGreen}{\textbf{Delta Lake (Simple):}}
+\begin{lstlisting}[language=Python]
+from delta.tables import DeltaTable
+
+table = DeltaTable.forPath(
+    spark, "/delta/products")
+
+# Simple atomic UPDATE
+table.update(
+    condition="product_id = 1",
+    set={"price": "899.99"}
+)
+\end{lstlisting}
+            \textcolor{databricksGreen}{\small Atomic, fast, safe}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Time Travel
+\begin{frame}[fragile]{Time Travel}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Query by Timestamp:}}
+\begin{lstlisting}[language=Python]
+# Query data from yesterday
+df = spark.read.format("delta")
+    .option("timestampAsOf", 
+            "2024-01-14")
+    .load("/delta/data")
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Query by Version:}}
+\begin{lstlisting}[language=Python]
+# Query specific version
+df = spark.read.format("delta")
+    .option("versionAsOf", 5)
+    .load("/delta/data")
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{View History:}}
+\begin{lstlisting}[language=SQL]
+DESCRIBE HISTORY 
+  delta.`/delta/data`;
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Use Cases:}}
+            \begin{itemize}
+                \item Audit trail compliance
+                \item Rollback bad changes
+                \item Reproduce ML results
+                \item Debug data issues
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Task 1: CSV to Delta
+\begin{frame}[fragile]{Task 1: Convert CSV to Delta Format}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Step 1: Read CSV with Schema}}
+\begin{lstlisting}[language=Python]
+csv_schema = StructType([
+  StructField("employee_id", 
+    IntegerType(), False),
+  StructField("name", 
+    StringType(), False),
+  StructField("department", 
+    StringType(), True),
+  StructField("salary", 
+    DoubleType(), True)
+])
+
+csv_df = spark.read
+  .option("header", "true")
+  .schema(csv_schema)
+  .csv("/data/csv/employees")
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Step 2: Write as Delta}}
+\begin{lstlisting}[language=Python]
+csv_df.write.format("delta")
+  .mode("overwrite")
+  .save("/delta/employees")
+
+print("Converted to Delta!")
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksGreen}{\textbf{Result:}}
+            \begin{itemize}
+                \item Parquet files created
+                \item Transaction log initialized
+                \item Schema enforced on reads/writes
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Task 2: Create Delta Tables
+\begin{frame}[fragile]{Task 2: Create Delta Tables}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Method 1: PySpark API}}
+\begin{lstlisting}[language=Python]
+# Create with data
+products_df = spark.createDataFrame(
+    products_data,
+    ["id", "name", "price"]
+)
+
+products_df.write.format("delta")
+  .mode("overwrite")
+  .save("/delta/products")
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Method 2: SQL}}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE default.orders (
+  order_id INT NOT NULL,
+  customer_id INT NOT NULL,
+  order_total DOUBLE,
+  order_date DATE
+)
+USING DELTA
+LOCATION '/delta/orders';
+
+INSERT INTO default.orders
+VALUES (1001, 501, 1299.99,
+        '2024-01-10');
+\end{lstlisting}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Task 2 Continued: Partitioning
+\begin{frame}[fragile]{Task 2: Create Partitioned Delta Table}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Write with Partitioning:}}
+\begin{lstlisting}[language=Python]
+sales_df.write.format("delta")
+  .mode("overwrite")
+  .partitionBy("month", "region")
+  .save("/delta/sales_partitioned")
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Create Table As Select:}}
+\begin{lstlisting}[language=SQL]
+CREATE TABLE high_value_orders
+USING DELTA
+LOCATION '/delta/high_value'
+AS SELECT * FROM orders 
+   WHERE order_total > 500;
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Folder Structure:}}
+\begin{lstlisting}
+sales_partitioned/
+|-- month=2024-01/
+|   |-- region=North/
+|   |-- region=South/
+|   |-- region=East/
+|-- month=2024-02/
+|   |-- ...
+|-- _delta_log/
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksGreen}{\textbf{Benefit:}} Faster queries with partition pruning
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Task 3: Schema Enforcement Tests
+\begin{frame}[fragile]{Task 3: Test Schema Enforcement}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Test 1: Wrong Data Type}}
+\begin{lstlisting}[language=Python]
+# Table expects: price DOUBLE
+bad_data = spark.createDataFrame([
+  (106, "Keyboard", "fifty nine")
+], ["id", "name", "price"])
+
+try:
+    bad_data.write.format("delta")
+      .mode("append")
+      .save("/delta/products")
+except Exception as e:
+    print("Blocked! Type mismatch")
+\end{lstlisting}
+            \textcolor{databricksGreen}{Schema enforcement works!}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Test 2: Extra Column}}
+\begin{lstlisting}[language=Python]
+# DataFrame has extra 'brand'
+extra = spark.createDataFrame([
+  (108, "USB", 24.99, "BrandX")
+], ["id", "name", "price", "brand"])
+
+# Enable schema evolution:
+extra.write.format("delta")
+  .mode("append")
+  .option("mergeSchema", "true")
+  .save("/delta/products")
+\end{lstlisting}
+            \textcolor{databricksGreen}{Now schema evolved!}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Task 4: Handle Duplicates
+\begin{frame}[fragile]{Task 4: Handle Duplicates with MERGE}
+    \begin{columns}[T]
+        \begin{column}{0.55\textwidth}
+            \textcolor{databricksBlue}{\textbf{Strategy 1: Insert Only New}}
+\begin{lstlisting}[language=Python]
+delta_table.alias("target").merge(
+    incoming_df.alias("source"),
+    "target.id = source.id"
+).whenNotMatchedInsertAll()
+ .execute()
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Strategy 2: Upsert}}
+\begin{lstlisting}[language=Python]
+delta_table.alias("target").merge(
+    incoming_df.alias("source"),
+    "target.id = source.id"
+).whenMatchedUpdateAll()
+ .whenNotMatchedInsertAll()
+ .execute()
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.45\textwidth}
+            \textcolor{databricksBlue}{\textbf{MERGE Logic:}}
+            \begin{itemize}
+                \item Match on join condition
+                \item \textcolor{databricksGreen}{Matched:} UPDATE or DELETE
+                \item \textcolor{databricksGreen}{Not Matched:} INSERT
+            \end{itemize}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Conditional Update:}}
+\begin{lstlisting}[language=Python]
+.whenMatchedUpdate(
+   set={"email": 
+        col("source.email")}
+)
+\end{lstlisting}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% SQL MERGE
+\begin{frame}[fragile]{MERGE Operation (SQL Syntax)}
+\begin{lstlisting}[language=SQL]
+MERGE INTO delta.`/delta/customers` AS target
+USING incoming_customers AS source
+ON target.customer_id = source.customer_id
+
+WHEN MATCHED THEN
+    UPDATE SET 
+        email = source.email,
+        name = source.name
+
+WHEN NOT MATCHED THEN
+    INSERT (customer_id, name, email, created_date)
+    VALUES (source.customer_id, source.name, 
+            source.email, source.created_date);
+\end{lstlisting}
+    \vspace{0.5em}
+    \textcolor{databricksGreen}{\textbf{Result:}} Atomic operation - updates existing, inserts new, all in one transaction
+\end{frame}
+
+% Quick Reference: Reading
+\begin{frame}[fragile]{Quick Reference: Reading \& Writing}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Reading Data:}}
+\begin{lstlisting}[language=Python]
+# Basic read
+df = spark.read.format("delta")
+  .load("/path/to/delta")
+
+# Read specific version
+df = spark.read.format("delta")
+  .option("versionAsOf", 5)
+  .load("/path")
+
+# Read at timestamp
+df = spark.read.format("delta")
+  .option("timestampAsOf", 
+          "2024-01-10")
+  .load("/path")
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Writing Data:}}
+\begin{lstlisting}[language=Python]
+# Overwrite
+df.write.format("delta")
+  .mode("overwrite")
+  .save("/path")
+
+# Append
+df.write.format("delta")
+  .mode("append")
+  .save("/path")
+
+# With schema evolution
+df.write.format("delta")
+  .mode("append")
+  .option("mergeSchema", "true")
+  .save("/path")
+\end{lstlisting}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Quick Reference: DML
+\begin{frame}[fragile]{Quick Reference: DML Operations}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Python API:}}
+\begin{lstlisting}[language=Python]
+from delta.tables import DeltaTable
+
+table = DeltaTable.forPath(
+    spark, "/path")
+
+# UPDATE
+table.update(
+    condition="id = 1",
+    set={"value": "100"})
+
+# DELETE
+table.delete(condition="id = 1")
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{SQL:}}
+\begin{lstlisting}[language=SQL]
+-- Update
+UPDATE delta.`/path` 
+SET name = 'Bob' 
+WHERE id = 1;
+
+-- Delete
+DELETE FROM delta.`/path` 
+WHERE id = 1;
+
+-- Vacuum (cleanup)
+VACUUM delta.`/path` 
+RETAIN 168 HOURS;
+\end{lstlisting}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Table Utilities
+\begin{frame}[fragile]{Quick Reference: Table Utilities}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{History \& Details:}}
+\begin{lstlisting}[language=SQL]
+-- View history
+DESCRIBE HISTORY delta.`/path`;
+
+-- View details
+DESCRIBE DETAIL delta.`/path`;
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Optimize:}}
+\begin{lstlisting}[language=Python]
+# Compact small files
+delta_table.optimize()
+  .executeCompaction()
+\end{lstlisting}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \textcolor{databricksBlue}{\textbf{Vacuum:}}
+\begin{lstlisting}[language=Python]
+# Remove old files (7 days)
+delta_table.vacuum(
+    retentionHours=168)
+\end{lstlisting}
+            \vspace{0.5em}
+            \textcolor{databricksBlue}{\textbf{Common Configs:}}
+            \begin{itemize}
+                \item autoOptimize.optimizeWrite
+                \item autoOptimize.autoCompact
+                \item deletedFileRetention
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% Summary Slide
+\begin{frame}{Summary}
+    \begin{center}
+        \textcolor{databricksBlue}{\Large\textbf{Delta Lake transforms data lakes into reliable lakehouses}}
+    \end{center}
+    \vspace{1em}
+    \begin{columns}[T]
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item \textcolor{databricksGreen}{\textbf{ACID Transactions}} - Data integrity guaranteed
+                \item \textcolor{databricksGreen}{\textbf{Schema Enforcement}} - Prevents bad data
+                \item \textcolor{databricksGreen}{\textbf{Time Travel}} - Version history access
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item \textcolor{databricksGreen}{\textbf{Unified Batch/Streaming}} - Same table for all
+                \item \textcolor{databricksGreen}{\textbf{Full DML Support}} - UPDATE, DELETE, MERGE
+                \item \textcolor{databricksGreen}{\textbf{Audit History}} - Complete changelog
+            \end{itemize}
+        \end{column}
+    \end{columns}
+    \vspace{1em}
+    \begin{block}{Key Insight}
+        Transaction log + Parquet files = Database reliability + Data lake flexibility
+    \end{block}
+\end{frame}
+
+% Thank You Slide
+\begin{frame}[plain]
+    \begin{tikzpicture}[remember picture,overlay]
+        \fill[databricksBlue] (current page.north west) rectangle (current page.south east);
+        \node[anchor=center] at (current page.center) {
+            \begin{minipage}{0.8\textwidth}
+                \centering
+                {\Huge\textcolor{databricksWhite}{\textbf{Thank You!}}\par}
+                \vspace{2em}
+                {\large\textcolor{databricksYellow}{Questions?}\par}
+                \vspace{2em}
+                {\normalsize\textcolor{databricksWhite}{Connect with me:}\par}
+                \vspace{0.5em}
+                {\normalsize\textcolor{databricksLightGray}{
+                    \href{https://www.linkedin.com/in/yashkavaiya}{LinkedIn: Yash Kavaiya}
+                }\par}
+                \vspace{0.5em}
+                {\normalsize\textcolor{databricksLightGray}{
+                    \href{https://easy-ai-labs.lovable.app/}{Easy AI Labs}
+                }\par}
+            \end{minipage}
+        };
+    \end{tikzpicture}
+\end{frame}
+
+\end{document}
